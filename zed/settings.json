@@ -1,0 +1,97 @@
+// Zed settings
+//
+// For information on how to configure Zed, see the Zed
+// documentation: https://zed.dev/docs/configuring-zed
+//
+// To see all of Zed's default settings without changing your
+// custom settings, run `zed: open default settings` from the
+// command palette (cmd-shift-p / ctrl-shift-p)
+{
+  "diagnostics": {
+    "include_warnings": true
+  },
+  "cli_default_open_behavior": "existing_window",
+  "icon_theme": "Zed (Default)",
+  "gutter": {
+    "git_gutter_width": {
+      "custom": 3.0
+    }
+  },
+  "tab_bar": {
+    "show": true,
+    "show_pinned_tabs_in_separate_row": false
+  },
+  "tabs": {
+    "file_icons": false,
+    "git_status": true
+  },
+  "status_bar": {
+    "cursor_position_button": true
+  },
+  "vim": {
+    "cursor_shape": {
+      "visual": "hollow"
+    }
+  },
+  "vertical_scroll_margin": 100.0,
+  "cursor_animation": {
+    "enabled": true
+  },
+  "terminal": {
+    "cursor_shape": "bar",
+    "starts_open": true,
+    "dock": "right"
+  },
+  "agent_servers": {
+    "antigravity-acp": {
+      "type": "registry",
+    },
+  },
+  "disable_ai": false,
+  "autosave": "off",
+  "format_on_save": "on",
+  "relative_line_numbers": "enabled",
+  "hover_popover_hiding_delay": 0,
+  "hover_popover_delay": 0,
+  "project_panel": {
+    "sort_order": "extension",
+    "hide_hidden": false,
+    "hide_root": false,
+    "git_status_indicator": false,
+    "diagnostic_badges": false,
+    "starts_open": false,
+    "folder_indicator": "icon",
+    "file_icons": true,
+    "entry_spacing": "standard",
+    "indent_size": 16.0,
+    "default_width": 120.0,
+    "bold_folder_labels": true,
+    "dock": "left",
+  },
+  "outline_panel": {
+    "dock": "left",
+  },
+  "collaboration_panel": {
+    "button": false,
+    "dock": "left",
+  },
+  "agent": {
+    "threads_sidebar": {
+      "default_width": 300.0,
+    },
+    "dock": "right",
+    "favorite_models": [],
+    "model_parameters": [],
+  },
+  "git_panel": {
+    "dock": "left",
+  },
+  "vim_mode": true,
+  "ui_font_size": 16,
+  "buffer_font_size": 15,
+  "theme": {
+    "mode": "system",
+    "light": "One Light",
+    "dark": "One Dark",
+  },
+}
