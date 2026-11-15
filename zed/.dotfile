@@ -1,0 +1,3 @@
+path:
+install: curl -f https://zed.dev/install.sh | sh
+desktop-environment:

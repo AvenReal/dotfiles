@@ -6,6 +6,68 @@ DOTFILES_DIR="$(cd "$(dirname "$0")" && pwd)"
 CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}"
 MAP_FILE="$DOTFILES_DIR/.dotfiles_map"
 
+get_dotfile_property() {
+    local dotfile="$1"
+    local prop_name="$2"
+    if [ ! -f "$dotfile" ]; then
+        return 0
+    fi
+    awk -F ':' -v prop="$prop_name" '
+        BEGIN { IGNORECASE=1 }
+        $1 ~ "^[[:space:]]*" prop "[[:space:]]*$" {
+            sub(/^[^:]*:[[:space:]]*/, "");
+            sub(/[[:space:]]+$/, "");
+            print;
+            exit;
+        }
+    ' "$dotfile"
+}
+
+strip_surrounding_quotes() {
+    local val="$1"
+    if [[ "$val" == \"*\" ]] && [ ${#val} -ge 2 ]; then
+        val="${val:1:${#val}-2}"
+    elif [[ "$val" == \'*\' ]] && [ ${#val} -ge 2 ]; then
+        val="${val:1:${#val}-2}"
+    fi
+    echo "$val"
+}
+
+get_restore_destination() {
+    local folder_name="$1"
+    local raw_path="$2"
+
+    raw_path="$(echo "$raw_path" | xargs)"
+    raw_path="$(strip_surrounding_quotes "$raw_path")"
+
+    if [ -z "$raw_path" ]; then
+        raw_path="~/.config/"
+    fi
+
+    local expanded_path
+    if [[ "$raw_path" == "~"* ]]; then
+        expanded_path="${HOME}${raw_path:1}"
+    else
+        expanded_path="$raw_path"
+    fi
+
+    if [ "$expanded_path" = "$HOME" ]; then
+        echo "$HOME/$folder_name"
+        return
+    fi
+
+    if [[ "$expanded_path" == */ ]]; then
+        expanded_path="${expanded_path%/}"
+        echo "$expanded_path/$folder_name"
+    elif [ -d "$expanded_path" ] && [ "$(basename "$expanded_path")" != "$folder_name" ]; then
+        echo "$expanded_path/$folder_name"
+    elif [ "$(basename "$expanded_path")" = "$folder_name" ]; then
+        echo "$expanded_path"
+    else
+        echo "$expanded_path/$folder_name"
+    fi
+}
+
 lookup_map_by_key() {
     local key="$1"
     if [ -f "$MAP_FILE" ]; then
@@ -44,7 +106,7 @@ for arg in "$@"; do
             echo "Usage: $(basename "$0") [-y] <file-or-folder>"
             echo ""
             echo "Removes a configuration file or folder from the dotfiles repository and moves"
-            echo "it back to its original location (~/ or ~/.config/), removing any existing symlink."
+            echo "it back to its target location (specified by .dotfile or ~/.config/), removing any existing symlink."
             echo ""
             echo "Options:"
             echo "  -y, --yes    Overwrite existing target file/folder without confirmation prompt."
@@ -52,12 +114,17 @@ for arg in "$@"; do
             echo ""
             echo "Examples:"
             echo "  $(basename "$0") kitty                   # Moves kitty back to ~/.config/kitty"
-            echo "  $(basename "$0") .bashrc                 # Moves .bashrc back to ~/.bashrc"
+            echo "  $(basename "$0") .bashrc                 # Moves .bashrc back to ~/"
             echo "  $(basename "$0") -y starship.toml        # Overwrites without prompt if target exists"
             exit 0
             ;;
         -y|--yes)
             ASSUME_YES=true
+            ;;
+        -*)
+            echo "Error: Unknown option '$arg'." >&2
+            echo "Run '$(basename "$0") --help' for details and examples." >&2
+            exit 1
             ;;
         *)
             if [ -z "$TARGET_ARG" ]; then
@@ -91,14 +158,53 @@ fi
 KEY=""
 RESTORE_TARGET=""
 
-# 1. Check if INPUT is directly a key in .dotfiles_map
-MAP_VAL="$(lookup_map_by_key "$INPUT")"
-if [ -n "$MAP_VAL" ]; then
+# 1. Check if INPUT is directly a folder/file in dotfiles repo
+if [ -e "$DOTFILES_DIR/$INPUT" ] || [ -L "$DOTFILES_DIR/$INPUT" ]; then
     KEY="$INPUT"
-    RESTORE_TARGET="${MAP_VAL/#\~/$HOME}"
+# 2. Check if INPUT is an absolute or relative path pointing inside dotfiles repo
+elif [[ "$INPUT" == "$DOTFILES_DIR/"* ]]; then
+    KEY="${INPUT#$DOTFILES_DIR/}"
+# 3. Check if INPUT is a symlink pointing into dotfiles repo
+elif [ -L "$INPUT" ]; then
+    RESOLVED_LINK="$(readlink -f "$INPUT" || true)"
+    if [[ "$RESOLVED_LINK" == "$DOTFILES_DIR/"* ]]; then
+        KEY="${RESOLVED_LINK#$DOTFILES_DIR/}"
+        RESTORE_TARGET="$(cd "$(dirname "$INPUT")" && pwd)/$(basename "$INPUT")"
+    fi
 fi
 
-# 2. Check if INPUT matches a portable or absolute value in .dotfiles_map
+# 4. If not found yet, check all config folders in dotfiles repo with a .dotfile
+if [ -z "$KEY" ]; then
+    for candidate_dir in "$DOTFILES_DIR"/*/; do
+        [ -d "$candidate_dir" ] || continue
+        candidate_name="$(basename "$candidate_dir")"
+        case "$candidate_name" in
+            .git|__packages__|tests|test_*) continue ;;
+        esac
+        candidate_dotfile=""
+        [ -f "$candidate_dir/.dotfile" ] && candidate_dotfile="$candidate_dir/.dotfile"
+        [ -z "$candidate_dotfile" ] && [ -f "$candidate_dir/.dotfiles" ] && candidate_dotfile="$candidate_dir/.dotfiles"
+        if [ -n "$candidate_dotfile" ]; then
+            candidate_path="$(get_dotfile_property "$candidate_dotfile" "path")"
+            candidate_dest="$(get_restore_destination "$candidate_name" "$candidate_path")"
+            if [ "$candidate_dest" = "$INPUT" ] || [ "$candidate_dest" = "${INPUT/#\~/$HOME}" ]; then
+                KEY="$candidate_name"
+                RESTORE_TARGET="$candidate_dest"
+                break
+            fi
+        fi
+    done
+fi
+
+# 5. Fallback to .dotfiles_map if KEY still not resolved
+if [ -z "$KEY" ]; then
+    MAP_VAL="$(lookup_map_by_key "$INPUT")"
+    if [ -n "$MAP_VAL" ]; then
+        KEY="$INPUT"
+        RESTORE_TARGET="${MAP_VAL/#\~/$HOME}"
+    fi
+fi
+
 if [ -z "$KEY" ]; then
     PORTABLE_INPUT="$INPUT"
     if [[ "$INPUT" == "$HOME/"* ]]; then
@@ -108,24 +214,6 @@ if [ -z "$KEY" ]; then
     if [ -n "$MAP_KEY" ]; then
         KEY="$MAP_KEY"
         RESTORE_TARGET="${PORTABLE_INPUT/#\~/$HOME}"
-    fi
-fi
-
-# 3. If not found in map, attempt smart discovery:
-if [ -z "$KEY" ]; then
-    # If path is given inside dotfiles repo
-    if [[ "$INPUT" == "$DOTFILES_DIR/"* ]]; then
-        KEY="${INPUT#$DOTFILES_DIR/}"
-    # If path exists in dotfiles repo
-    elif [ -e "$DOTFILES_DIR/$INPUT" ] || [ -L "$DOTFILES_DIR/$INPUT" ]; then
-        KEY="$INPUT"
-    # If path given is a symlink pointing into dotfiles repo
-    elif [ -L "$INPUT" ]; then
-        RESOLVED_LINK="$(readlink -f "$INPUT" || true)"
-        if [[ "$RESOLVED_LINK" == "$DOTFILES_DIR/"* ]]; then
-            KEY="${RESOLVED_LINK#$DOTFILES_DIR/}"
-            RESTORE_TARGET="$(cd "$(dirname "$INPUT")" && pwd)/$(basename "$INPUT")"
-        fi
     fi
 fi
 
@@ -143,18 +231,35 @@ fi
 
 # If RESTORE_TARGET has not been determined yet:
 if [ -z "$RESTORE_TARGET" ]; then
-    # Check if a symlink exists at ~/.config/$KEY pointing to REPO_ITEM
-    if [ -L "$CONFIG_DIR/$KEY" ] && [ "$(readlink -f "$CONFIG_DIR/$KEY" || true)" = "$REPO_ITEM" ]; then
+    dotfile=""
+    [ -f "$REPO_ITEM/.dotfile" ] && dotfile="$REPO_ITEM/.dotfile"
+    [ -z "$dotfile" ] && [ -f "$REPO_ITEM/.dotfiles" ] && dotfile="$REPO_ITEM/.dotfiles"
+    if [ -n "$dotfile" ]; then
+        raw_path="$(get_dotfile_property "$dotfile" "path")"
+        RESTORE_TARGET="$(get_restore_destination "$KEY" "$raw_path")"
+    fi
+fi
+
+# Fallback resolution for RESTORE_TARGET if still empty:
+if [ -z "$RESTORE_TARGET" ]; then
+    MAP_VAL="$(lookup_map_by_key "$KEY")"
+    if [ -n "$MAP_VAL" ]; then
+        RESTORE_TARGET="${MAP_VAL/#\~/$HOME}"
+    elif [ -L "$CONFIG_DIR/$KEY" ] && [ "$(readlink -f "$CONFIG_DIR/$KEY" || true)" = "$REPO_ITEM" ]; then
         RESTORE_TARGET="$CONFIG_DIR/$KEY"
-    # Check if a symlink exists at ~/$KEY pointing to REPO_ITEM
     elif [ -L "$HOME/$KEY" ] && [ "$(readlink -f "$HOME/$KEY" || true)" = "$REPO_ITEM" ]; then
         RESTORE_TARGET="$HOME/$KEY"
-    # Fallback convention: if starts with a dot, usually home directory; else ~/.config/
     elif [[ "$KEY" == .* ]]; then
         RESTORE_TARGET="$HOME/$KEY"
     else
         RESTORE_TARGET="$CONFIG_DIR/$KEY"
     fi
+fi
+
+# Guard: check if source and destination are identical
+if [ "$REPO_ITEM" = "$RESTORE_TARGET" ] || { [ -e "$REPO_ITEM" ] && [ -e "$RESTORE_TARGET" ] && [ "$(readlink -f "$REPO_ITEM" 2>/dev/null)" = "$(readlink -f "$RESTORE_TARGET" 2>/dev/null)" ] && [ ! -L "$RESTORE_TARGET" ]; }; then
+    echo "Item '$KEY' is already at restore destination '$RESTORE_TARGET'."
+    exit 0
 fi
 
 echo "Source (in dotfiles): $REPO_ITEM"
@@ -198,7 +303,7 @@ fi
 echo "Moving $TYPE: $REPO_ITEM -> $RESTORE_TARGET"
 mv "$REPO_ITEM" "$RESTORE_TARGET"
 
-# Step 4: Clean up .dotfiles_map
+# Step 4: Clean up .dotfiles_map if present
 remove_from_map "$KEY"
 
 # Clean up empty parent directories in dotfiles repo if nested

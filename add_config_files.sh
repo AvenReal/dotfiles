@@ -7,8 +7,8 @@ if [ $# -ge 1 ] && { [ "$1" = "-h" ] || [ "$1" = "--help" ]; }; then
     echo "Usage: $(basename "$0") <file-or-folder>"
     echo ""
     echo "Moves a configuration folder or file into the dotfiles repository and replaces"
-    echo "it with a symbolic link. It tracks the original location (~/ or ~/.config/)"
-    echo "in .dotfiles_map so that remove_config_files.sh can restore it accurately."
+    echo "it with a symbolic link. It configures a .dotfile file inside the config folder"
+    echo "so that remove_config_files.sh and install.sh can manage and restore it accurately."
     echo ""
     echo "Examples:"
     echo "  $(basename "$0") nvim                    # Moves ~/.config/nvim and symlinks it"
@@ -25,9 +25,51 @@ if [ $# -lt 1 ] || [ -z "$1" ]; then
     exit 1
 fi
 
+if [[ "$1" == -* ]]; then
+    echo "Error: Unknown option '$1'." >&2
+    echo "Run '$(basename "$0") --help' for details and examples." >&2
+    exit 1
+fi
+
 DOTFILES_DIR="$(cd "$(dirname "$0")" && pwd)"
 CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}"
 MAP_FILE="$DOTFILES_DIR/.dotfiles_map"
+
+create_or_update_dotfile() {
+    local dest_dir="$1"
+    local portable_src="$2"
+    local dotfile="$dest_dir/.dotfile"
+
+    local path_val=""
+    if [[ "$portable_src" != "~/.config/"* ]] && [[ "$portable_src" != "$CONFIG_DIR/"* ]]; then
+        path_val="$portable_src"
+    fi
+
+    if [ ! -f "$dotfile" ]; then
+        cat <<EOF > "$dotfile"
+path: $path_val
+install: 
+desktop-environment: 
+EOF
+    else
+        local existing_path
+        existing_path="$(awk -F ':' 'BEGIN{IGNORECASE=1} $1 ~ "^[[:space:]]*path[[:space:]]*$" { sub(/^[^:]*:[[:space:]]*/, ""); sub(/[[:space:]]+$/, ""); print; exit }' "$dotfile")"
+        if [ -z "$existing_path" ] && [ -n "$path_val" ]; then
+            local tmp_dotfile
+            tmp_dotfile="$(mktemp)"
+            awk -v p="$path_val" '
+                BEGIN { updated = 0 }
+                /^[[:space:]]*path:[[:space:]]*$/ && !updated {
+                    print "path: " p;
+                    updated = 1;
+                    next;
+                }
+                { print }
+            ' "$dotfile" > "$tmp_dotfile"
+            mv "$tmp_dotfile" "$dotfile"
+        fi
+    fi
+}
 
 update_map() {
     local key="$1"
@@ -108,8 +150,13 @@ if [ -L "$SOURCE" ]; then
     CURRENT_TARGET="$(readlink "$SOURCE" || true)"
     RESOLVED_TARGET="$(readlink -f "$SOURCE" || true)"
     if [ "$CURRENT_TARGET" = "$DEST" ] || [ "$RESOLVED_TARGET" = "$DEST" ]; then
-        update_map "$REL_PATH" "$PORTABLE_SOURCE"
-        echo "'$SOURCE' is already symlinked to '$DEST' (mapping saved in .dotfiles_map)."
+        if [ -d "$DEST" ]; then
+            create_or_update_dotfile "$DEST" "$PORTABLE_SOURCE"
+        fi
+        if [ -f "$MAP_FILE" ]; then
+            update_map "$REL_PATH" "$PORTABLE_SOURCE"
+        fi
+        echo "'$SOURCE' is already symlinked to '$DEST'."
         exit 0
     else
         echo "Error: '$SOURCE' is already a symlink pointing to '$CURRENT_TARGET'." >&2
@@ -142,7 +189,14 @@ if ! ln -s "$DEST" "$SOURCE"; then
     exit 1
 fi
 
-# Remember origin location in .dotfiles_map
-update_map "$REL_PATH" "$PORTABLE_SOURCE"
+# Create or update .dotfile inside the config folder
+if [ -d "$DEST" ]; then
+    create_or_update_dotfile "$DEST" "$PORTABLE_SOURCE"
+fi
+
+# Update .dotfiles_map if it exists
+if [ -f "$MAP_FILE" ]; then
+    update_map "$REL_PATH" "$PORTABLE_SOURCE"
+fi
 
 echo "Successfully added and symlinked $(basename "$DEST") (origin: $PORTABLE_SOURCE)."
