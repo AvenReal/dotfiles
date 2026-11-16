@@ -18,7 +18,7 @@ A modular dotfiles management repository with automated package installation, sy
 
 ## Overview
 
-Each configuration directory in this repository (e.g., `fish/`, `kitty/`, `zed/`) contains its config files along with a `.dotfile` metadata file that controls how the configuration is installed and deployed.
+Each configuration directory in this repository (e.g., `i3/`, `dmenu/`, `picom/`, `fish/`, `kitty/`, `zed/`) contains its config files along with a `.dotfile` metadata file that controls how the configuration is installed and deployed.
 
 ---
 
@@ -35,7 +35,7 @@ desktop-environment:
 | Field                   | Description                                                                                                               | Default (when empty)                                         |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
 | `path: `                | Destination directory where the config folder should be placed during export/restoration. Supports `~` expansion.         | `~/.config/`                                                 |
-| `install: `             | Custom package installation command override. Can be set to `skip` or `none` to bypass package installation.              | Uses the OS package manager specified during `./install.sh`. |
+| `install: `             | Custom installation command. Set to `default` (or empty) to use the package manager, or set to `don't`, `none`, `skip`, `/`, or `no` to bypass package installation completely. | Uses the OS package manager specified during `./install.sh`. |
 | `desktop-environment: ` | Specific desktop environment(s) for this configuration (e.g. `gnome`, `kde`, `hyprland`). Supports comma-separated lists. | Installs for all desktop environments.                       |
 
 ---

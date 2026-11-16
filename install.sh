@@ -217,33 +217,42 @@ for folder in "${config_folders[@]}"; do
     echo "==> Processing configuration folder '$folder'..."
 
     # Determine installation command
-    install_cmd="$dotfile_install"
-    if [ -z "$install_cmd" ]; then
-        case "$PACKAGE_MANAGER" in
-            nix)
-                install_cmd="nix profile install nixpkgs#$folder"
-                ;;
-            dnf)
-                install_cmd="dnf install -y $folder"
-                ;;
-            pacman)
-                install_cmd="pacman -Sy $folder"
-                ;;
-            apt|apt-get)
-                install_cmd="apt-get install -y $folder"
-                ;;
-            brew)
-                install_cmd="brew install $folder"
-                ;;
-            zypper)
-                install_cmd="zypper install -y $folder"
-                ;;
-        esac
-    fi
+    install_val="$(echo "$dotfile_install" | tr '[:upper:]' '[:lower:]' | xargs)"
+    case "$install_val" in
+        none|skip|"don't"|dont|"/"|no|false|off)
+            echo "Skipping package installation for '$folder' (configured as '$dotfile_install')."
+            install_cmd="skip"
+            ;;
+        default|"")
+            # Default: use system package manager
+            case "$PACKAGE_MANAGER" in
+                nix)
+                    install_cmd="nix profile install nixpkgs#$folder"
+                    ;;
+                dnf)
+                    install_cmd="dnf install -y $folder"
+                    ;;
+                pacman)
+                    install_cmd="pacman -Sy $folder"
+                    ;;
+                apt|apt-get)
+                    install_cmd="apt-get install -y $folder"
+                    ;;
+                brew)
+                    install_cmd="brew install $folder"
+                    ;;
+                zypper)
+                    install_cmd="zypper install -y $folder"
+                    ;;
+            esac
+            ;;
+        *)
+            # Custom installation command
+            install_cmd="$dotfile_install"
+            ;;
+    esac
 
-    if [ "$install_cmd" = "none" ] || [ "$install_cmd" = "skip" ]; then
-        echo "Skipping package installation for '$folder' (configured as '$install_cmd')."
-    else
+    if [ "$install_cmd" != "skip" ]; then
         echo "Installing package for '$folder': $install_cmd"
         if [ "$DRY_RUN" = true ]; then
             echo "[DRY-RUN] Command: $install_cmd"

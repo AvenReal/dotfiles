@@ -1,0 +1,210 @@
+# ==============================================================================
+# i3 Configuration
+# ==============================================================================
+# Please see https://i3wm.org/docs/userguide.html for a complete reference!
+
+# ------------------------------------------------------------------------------
+# 1. Variables & Modifier Key
+# ------------------------------------------------------------------------------
+set $mod Mod4
+font pango:monospace 8
+
+# Wallpaper and Assets
+set $lockScreenWallpaper "~/Work/Projects/dotfiles/wallpaper.png"
+
+# Default workspace names
+set $ws1 "1"
+set $ws2 "2"
+set $ws3 "3"
+set $ws4 "4"
+set $ws5 "5"
+set $ws6 "6"
+set $ws7 "7"
+set $ws8 "8"
+set $ws9 "9"
+set $ws10 "10"
+
+# ------------------------------------------------------------------------------
+# 2. Autostart Applications & Compositor
+# ------------------------------------------------------------------------------
+# Start XDG autostart .desktop files using dex
+exec --no-startup-id dex --autostart --environment i3
+
+# Screen locker and power management
+exec --no-startup-id xss-lock --transfer-sleep-lock -- i3lock --nofork
+
+# NetworkManager tray applet
+exec --no-startup-id nm-applet
+
+# Set desktop wallpaper (with fallback search paths)
+exec --no-startup-id sh -c "feh --bg-fill $lockScreenWallpaper 2>/dev/null || feh --bg-fill ~/dotfiles/wallpaper.png 2>/dev/null || feh --bg-fill ~/.config/wallpaper.jpg 2>/dev/null || true"
+
+# Start compositor (picom) for window effects and opacity
+# Non-focused (inactive) windows have 80% opacity
+exec_always --no-startup-id sh -c "killall -q picom; [ -f ~/.config/picom/picom.conf ] && picom -b --config ~/.config/picom/picom.conf --inactive-opacity 0.8 || [ -f ~/Work/Projects/dotfiles/picom/picom.conf ] && picom -b --config ~/Work/Projects/dotfiles/picom/picom.conf --inactive-opacity 0.8 || picom -b --inactive-opacity 0.8"
+
+# ------------------------------------------------------------------------------
+# 3. Window Appearance & Borders
+# ------------------------------------------------------------------------------
+# Window borders
+for_window [class="^.*"] border pixel 1
+
+# Gaps
+gaps inner 5
+gaps outer 0
+
+# Floating modifier (Use Mouse+$mod to drag floating windows)
+floating_modifier $mod
+
+# Tiling drag modifier
+tiling_drag modifier titlebar
+
+# ------------------------------------------------------------------------------
+# 4. Keybindings - Applications & Audio Controls
+# ------------------------------------------------------------------------------
+# Start a terminal
+bindsym $mod+Return exec i3-sensible-terminal
+
+# Start web browser
+bindsym $mod+Shift+B exec firefox
+
+# Start dmenu (a program launcher configured as a centered popup window)
+bindsym $mod+d exec --no-startup-id sh -c "[ -x ~/.config/dmenu/dmenu-center ] && ~/.config/dmenu/dmenu-center || [ -x ~/Work/Projects/dotfiles/dmenu/dmenu-center ] && ~/Work/Projects/dotfiles/dmenu/dmenu-center || dmenu_run"
+bindsym $mod+space exec --no-startup-id sh -c "[ -x ~/.config/dmenu/dmenu-center ] && ~/.config/dmenu/dmenu-center || [ -x ~/Work/Projects/dotfiles/dmenu/dmenu-center ] && ~/Work/Projects/dotfiles/dmenu/dmenu-center || dmenu_run"
+
+# PulseAudio volume controls
+set $refresh_i3status killall -SIGUSR1 i3status
+bindsym XF86AudioRaiseVolume exec --no-startup-id pactl set-sink-volume @DEFAULT_SINK@ +10% && $refresh_i3status
+bindsym XF86AudioLowerVolume exec --no-startup-id pactl set-sink-volume @DEFAULT_SINK@ -10% && $refresh_i3status
+bindsym XF86AudioMute exec --no-startup-id pactl set-sink-mute @DEFAULT_SINK@ toggle && $refresh_i3status
+bindsym XF86AudioMicMute exec --no-startup-id pactl set-source-mute @DEFAULT_SOURCE@ toggle && $refresh_i3status
+
+# ------------------------------------------------------------------------------
+# 5. Keybindings - Window Management
+# ------------------------------------------------------------------------------
+# Kill focused window
+bindsym $mod+Shift+Q kill
+
+# Change focus (Vim navigation keys)
+bindsym $mod+j focus left
+bindsym $mod+k focus down
+bindsym $mod+l focus up
+bindsym $mod+semicolon focus right
+
+# Change focus (Cursor keys)
+bindsym $mod+Left focus left
+bindsym $mod+Down focus down
+bindsym $mod+Up focus up
+bindsym $mod+Right focus right
+
+# Move focused window (Vim navigation keys)
+bindsym $mod+Shift+j move left
+bindsym $mod+Shift+k move down
+bindsym $mod+Shift+l move up
+bindsym $mod+Shift+semicolon move right
+
+# Move focused window (Cursor keys)
+bindsym $mod+Shift+Left move left
+bindsym $mod+Shift+Down move down
+bindsym $mod+Shift+Up move up
+bindsym $mod+Shift+Right move right
+
+# Split orientation
+bindsym $mod+h split h
+bindsym $mod+v split v
+
+# Fullscreen toggle for focused container
+bindsym $mod+f fullscreen toggle
+
+# Change container layout (stacked, tabbed, toggle split)
+bindsym $mod+s layout stacking
+bindsym $mod+w layout tabbed
+bindsym $mod+e layout toggle split
+
+# Toggle tiling / floating
+bindsym $mod+Shift+space floating toggle
+
+# Focus parent container
+bindsym $mod+a focus parent
+
+# ------------------------------------------------------------------------------
+# 6. Keybindings - Workspaces
+# ------------------------------------------------------------------------------
+# Switch to workspace
+bindsym $mod+1 workspace number $ws1
+bindsym $mod+2 workspace number $ws2
+bindsym $mod+3 workspace number $ws3
+bindsym $mod+4 workspace number $ws4
+bindsym $mod+5 workspace number $ws5
+bindsym $mod+6 workspace number $ws6
+bindsym $mod+7 workspace number $ws7
+bindsym $mod+8 workspace number $ws8
+bindsym $mod+9 workspace number $ws9
+bindsym $mod+0 workspace number $ws10
+
+# Move focused container to workspace
+bindsym $mod+Shift+1 move container to workspace number $ws1
+bindsym $mod+Shift+2 move container to workspace number $ws2
+bindsym $mod+Shift+3 move container to workspace number $ws3
+bindsym $mod+Shift+4 move container to workspace number $ws4
+bindsym $mod+Shift+5 move container to workspace number $ws5
+bindsym $mod+Shift+6 move container to workspace number $ws6
+bindsym $mod+Shift+7 move container to workspace number $ws7
+bindsym $mod+Shift+8 move container to workspace number $ws8
+bindsym $mod+Shift+9 move container to workspace number $ws9
+bindsym $mod+Shift+0 move container to workspace number $ws10
+
+# ------------------------------------------------------------------------------
+# 7. Session Control & Modes
+# ------------------------------------------------------------------------------
+# Reload configuration file
+bindsym $mod+Shift+c reload
+
+# Restart i3 inplace
+bindsym $mod+Shift+r restart
+
+# Exit i3 (logs you out of your X session)
+bindsym $mod+Shift+e exec "i3-nagbar -t warning -m 'You pressed the exit shortcut. Do you really want to exit i3? This will end your X session.' -B 'Yes, exit i3' 'i3-msg exit'"
+
+# Resize window mode
+mode "resize" {
+    # Resize with Vim keys
+    bindsym j resize shrink width 10 px or 10 ppt
+    bindsym k resize grow height 10 px or 10 ppt
+    bindsym l resize shrink height 10 px or 10 ppt
+    bindsym semicolon resize grow width 10 px or 10 ppt
+
+    # Resize with cursor keys
+    bindsym Left resize shrink width 10 px or 10 ppt
+    bindsym Down resize grow height 10 px or 10 ppt
+    bindsym Up resize shrink height 10 px or 10 ppt
+    bindsym Right resize grow width 10 px or 10 ppt
+
+    # Return to default mode
+    bindsym Return mode "default"
+    bindsym Escape mode "default"
+    bindsym $mod+r mode "default"
+}
+bindsym $mod+r mode "resize"
+
+# ------------------------------------------------------------------------------
+# 8. Status Bar & Colors
+# ------------------------------------------------------------------------------
+bar {
+    workspace_min_width 24
+    padding 2px 8px 2px 8px
+    position top
+    separator_symbol "   "
+
+    colors {
+        background #000000
+        statusline #161925
+        separator  #2f343f
+
+        # colour of        border    background text
+        focused_workspace  #000000   #F2C791    #FFFFFF
+        active_workspace   #000000   #000000    #FFFFFF
+        inactive_workspace #000000   #000000    #FFFFFF
+        urgent_workspace   #000000   #BF6374    #FFFFFF
+    }
+}
