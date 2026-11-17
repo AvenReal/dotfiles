@@ -193,7 +193,7 @@ bindsym $mod+r mode "resize"
 bar {
     workspace_min_width 24
     padding 2px 8px 2px 8px
-    position top
+    position bottom
     separator_symbol "   "
 
     colors {
