@@ -104,6 +104,7 @@ bindsym $mod+Shift+B exec firefox
 
 # Start dmenu (a program launcher)
 bindsym $mod+d exec --no-startup-id dmenu_run
+bindsym $mod+space exec --no-startip-id dmenu_run
 
 # PulseAudio volume controls
 set $refresh_i3status killall -SIGUSR1 i3status
