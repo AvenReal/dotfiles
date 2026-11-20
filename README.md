@@ -18,7 +18,7 @@ A modular dotfiles management repository with automated package installation, sy
 
 ## Overview
 
-Each configuration directory in this repository (e.g., `i3/`, `dmenu/`, `picom/`, `fish/`, `kitty/`, `zed/`) contains its config files along with a `.dotfile` metadata file that controls how the configuration is installed and deployed.
+Each configuration directory in this repository (e.g., `i3/`, `picom/`, `fish/`, `kitty/`, `zed/`) contains its config files along with a `.dotfile` metadata file that controls how the configuration is installed and deployed.
 
 ---
 

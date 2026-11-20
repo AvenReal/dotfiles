@@ -9,6 +9,31 @@
 set $mod Mod4
 font pango:monospace 8
 
+# Color Palette (Coherent with wallpaper.png - Nord Theme)
+# Polar Night (Dark backgrounds)
+set $nord0  #2E3440
+set $nord1  #3B4252
+set $nord2  #434C5E
+set $nord3  #4C566A
+
+# Snow Storm (Light foreground / text)
+set $nord4  #D8DEE9
+set $nord5  #E5E9F0
+set $nord6  #ECEFF4
+
+# Frost (Teal & Blues)
+set $nord7  #8FBCBB
+set $nord8  #88C0D0
+set $nord9  #81A1C1
+set $nord10 #5E81AC
+
+# Aurora (Highlights & Status)
+set $nord11 #BF616A
+set $nord12 #D08770
+set $nord13 #EBCB8B
+set $nord14 #A3BE8C
+set $nord15 #B48EAD
+
 # Wallpaper and Assets
 set $lockScreenWallpaper "~/Work/Projects/dotfiles/wallpaper.png"
 
@@ -59,6 +84,15 @@ floating_modifier $mod
 # Tiling drag modifier
 tiling_drag modifier titlebar
 
+# Window Colors
+# class                 border  background text    indicator child_border
+client.focused          $nord8  $nord8     $nord0  $nord12   $nord8
+client.focused_inactive $nord1  $nord1     $nord4  $nord3    $nord1
+client.unfocused        $nord1  $nord0     $nord4  $nord3    $nord1
+client.urgent           $nord11 $nord11    $nord6  $nord12   $nord11
+client.placeholder      $nord0  $nord0     $nord4  $nord3    $nord0
+client.background       $nord0
+
 # ------------------------------------------------------------------------------
 # 4. Keybindings - Applications & Audio Controls
 # ------------------------------------------------------------------------------
@@ -68,9 +102,8 @@ bindsym $mod+Return exec i3-sensible-terminal
 # Start web browser
 bindsym $mod+Shift+B exec firefox
 
-# Start dmenu (a program launcher configured as a centered popup window)
-bindsym $mod+d exec --no-startup-id sh -c "[ -x ~/.config/dmenu/dmenu-center ] && ~/.config/dmenu/dmenu-center || [ -x ~/Work/Projects/dotfiles/dmenu/dmenu-center ] && ~/Work/Projects/dotfiles/dmenu/dmenu-center || dmenu_run"
-bindsym $mod+space exec --no-startup-id sh -c "[ -x ~/.config/dmenu/dmenu-center ] && ~/.config/dmenu/dmenu-center || [ -x ~/Work/Projects/dotfiles/dmenu/dmenu-center ] && ~/Work/Projects/dotfiles/dmenu/dmenu-center || dmenu_run"
+# Start dmenu (a program launcher)
+bindsym $mod+d exec --no-startup-id dmenu_run
 
 # PulseAudio volume controls
 set $refresh_i3status killall -SIGUSR1 i3status
@@ -197,14 +230,15 @@ bar {
     separator_symbol "   "
 
     colors {
-        background #000000
-        statusline #161925
-        separator  #2f343f
+        background $nord0
+        statusline $nord4
+        separator  $nord3
 
-        # colour of        border    background text
-        focused_workspace  #000000   #F2C791    #FFFFFF
-        active_workspace   #000000   #000000    #FFFFFF
-        inactive_workspace #000000   #000000    #FFFFFF
-        urgent_workspace   #000000   #BF6374    #FFFFFF
+        # colour of        border  background text
+        focused_workspace  $nord8  $nord8     $nord0
+        active_workspace   $nord1  $nord1     $nord6
+        inactive_workspace $nord0  $nord0     $nord4
+        urgent_workspace   $nord11 $nord11    $nord6
+        binding_mode       $nord12 $nord12    $nord0
     }
 }
