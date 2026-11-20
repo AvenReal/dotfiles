@@ -1,0 +1,18 @@
+theme = "adwaita-dark"
+
+[editor]
+line-number = "relative"
+scrolloff = 999
+auto-format = true
+
+[editor.cursor-shape]
+insert = "bar"
+normal = "block"
+select = "underline" 
+
+[keys.normal]
+p = ["paste_after", "format_selections"]
+tab = ":bn"
+
+[keys.insert]
+esc = ["normal_mode", ":format"]
